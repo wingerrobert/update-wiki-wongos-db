@@ -13,7 +13,8 @@ const app = getApps().length
   });
 
 const adminDb = getFirestore(app);
-const MAX_ITERATIONS = 10;
+
+const MAX_ITERATIONS = 1000;
 const RETRY_DELAY = 250; 
 const FEED_API = 'https://api.wikimedia.org/feed/v1/wikipedia/en/featured';
 
@@ -34,6 +35,7 @@ export async function updateArticles(): Promise<number> {
 
   for (const article of articles) {
     const docid = article?.pageid?.toString();
+
     if (!docid) {
       console.warn("Missing pageid for article:", article);
       continue;
@@ -80,7 +82,6 @@ function isWikiArticle(obj: any): obj is WikiArticle {
   return (
     obj &&
     typeof obj === 'object' &&
-    typeof obj.pageid === 'string' &&
     typeof obj.normalizedtitle === 'string'
   );
 }
