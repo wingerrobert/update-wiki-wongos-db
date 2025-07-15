@@ -17,7 +17,7 @@ const MAX_ITERATIONS = 10;
 const RETRY_DELAY = 250; 
 const FEED_API = 'https://api.wikimedia.org/feed/v1/wikipedia/en/featured';
 
-export type WikiArticle =
+type WikiArticle =
 {
   pageid: string;
   normalizedtitle: string;
@@ -76,7 +76,7 @@ async function getArticles() {
   return articles;
 }
 
-export function isWikiArticle(obj: any): obj is WikiArticle {
+function isWikiArticle(obj: any): obj is WikiArticle {
   return (
     obj &&
     typeof obj === 'object' &&
