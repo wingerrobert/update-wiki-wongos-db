@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Make ts-node executable
+        run: chmod +x ./node_modules/.bin/ts-node
+
       - name: Run Article Updater
         run: npx ts-node action.ts
         env:
