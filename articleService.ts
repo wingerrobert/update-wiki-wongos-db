@@ -15,17 +15,18 @@ const app = getApps().length
 const adminDb = getFirestore(app);
 
 const MAX_ITERATIONS = 1000;
-const RETRY_DELAY = 250; 
+const RETRY_DELAY = 250;
 const FEED_API = 'https://api.wikimedia.org/feed/v1/wikipedia/en/featured';
+const DAYS_TO_FETCH = 10;
 
 type WikiArticle =
-{
-  pageid: string;
-  normalizedtitle: string;
-  description?: string;
-  timestamp?: string;
-  cachedAt: Timestamp;
-};
+  {
+    pageid: string;
+    normalizedtitle: string;
+    description?: string;
+    timestamp?: string;
+    cachedAt: Timestamp;
+  };
 
 export async function updateArticles(): Promise<number> {
   const articles: WikiArticle[] = await getArticles();
@@ -40,7 +41,7 @@ export async function updateArticles(): Promise<number> {
       console.warn("Missing pageid for article:", article);
       continue;
     }
-    
+
     const docRef = adminDb.doc(`articles/${article.pageid}`);
     batch.set(docRef, { ...article, cachedAt: Timestamp.now() });
 
@@ -52,26 +53,29 @@ export async function updateArticles(): Promise<number> {
 }
 
 async function getArticles() {
-  const date = new Date();
+  let date = new Date();
 
   let currentIteration = 0;
   let articles: WikiArticle[] = [];
 
-  while (currentIteration++ < MAX_ITERATIONS) {
-    try {
-      const response = await fetch(`${FEED_API}/${date.toISOString().slice(0, 10).replace(/-/g, '/')}`);
-      const data = await response.json();
+  for (let i = 0; i < DAYS_TO_FETCH; i++) {
+    date.setMonth(date.getMonth() - i);
+    while (currentIteration++ < MAX_ITERATIONS) {
+      try {
+        const response = await fetch(`${FEED_API}/${date.toISOString().slice(0, 10).replace(/-/g, '/')}`);
+        const data = await response.json();
 
-      const tfaArticle = data.tfa && isWikiArticle(data.tfa) ? [data.tfa] : [];
-      const mostReadArticles = (data.mostread?.articles ?? []).filter(isWikiArticle);
-      const featuredArticles = (data.featured?.articles ?? []).filter(isWikiArticle);
+        const tfaArticle = data.tfa && isWikiArticle(data.tfa) ? [data.tfa] : [];
+        const mostReadArticles = (data.mostread?.articles ?? []).filter(isWikiArticle);
+        const featuredArticles = (data.featured?.articles ?? []).filter(isWikiArticle);
 
-      articles.push(...tfaArticle, ...mostReadArticles, ...featuredArticles);
+        articles.push(...tfaArticle, ...mostReadArticles, ...featuredArticles);
 
-      break;
-    } catch (e) {
-      await sleep(RETRY_DELAY ?? 300);
-      console.error("Error grabbing articles for date:", date, e);
+        break;
+      } catch (e) {
+        await sleep(RETRY_DELAY ?? 300);
+        console.error("Error grabbing articles for date:", date, e);
+      }
     }
   }
 
