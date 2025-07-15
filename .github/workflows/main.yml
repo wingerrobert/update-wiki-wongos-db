@@ -23,8 +23,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Make ts-node executable
-        run: chmod +x ./node_modules/.bin/ts-node
+      - name: Make tsx executable
+        run: chmod +x ./node_modules/.bin/tsx
 
       - name: Run Article Updater
         run: npx tsx action.ts
