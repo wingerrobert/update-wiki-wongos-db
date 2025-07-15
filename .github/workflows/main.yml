@@ -24,7 +24,7 @@ jobs:
         run: npm install
 
       - name: Run Article Updater
-        run: npm ts-node action.ts
+        run: npx ts-node action.ts
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
