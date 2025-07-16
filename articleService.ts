@@ -17,6 +17,7 @@ const adminDb = getFirestore(app);
 const MAX_ITERATIONS = 1000;
 const RETRY_DELAY = 250;
 const FEED_API = 'https://api.wikimedia.org/feed/v1/wikipedia/en/featured';
+const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 const DAYS_TO_FETCH = 10;
 
 type WikiArticle =
@@ -25,6 +26,7 @@ type WikiArticle =
     normalizedtitle: string;
     description?: string;
     timestamp?: string;
+    categories?: string[];
     cachedAt: Timestamp;
   };
 
@@ -42,8 +44,10 @@ export async function updateArticles(): Promise<number> {
       continue;
     }
 
+    const categories = await getCategories(article.normalizedtitle);
+
     const docRef = adminDb.doc(`articles/${article.pageid}`);
-    batch.set(docRef, { ...article, cachedAt: Timestamp.now() });
+    batch.set(docRef, { ...article, categories, cachedAt: Timestamp.now() });
 
     storedCount++;
   }
@@ -52,6 +56,36 @@ export async function updateArticles(): Promise<number> {
   return storedCount;
 }
 
+async function getCategories(title: string): Promise<string[]> {
+  const params = new URLSearchParams({
+    action: 'query',
+    titles: title,
+    prop: 'categories',
+    cllimit: 'max',
+    clshow: '!hidden',
+    format: 'json',
+    origin: '*',
+  });
+
+  try {
+    const res = await fetch(`${WIKI_API}?${params}`);
+    const data = await res.json();
+
+    const page = data.query?.pages?.[Object.keys(data.query.pages)[0]]?.categories ?? [];
+
+    const categories: string[] = page
+      .filter((c: any) => {
+        const t = c.title.replace("Category:", "");
+        return !t.toLowerCase().includes(title.toLowerCase());
+      })
+      .map((c: any) => c.title.replace("Category:", ""));
+
+    return categories;
+  } catch (error) {
+    console.error(`Failed to fetch categories for "${title}":`, error);
+    return [];
+  }
+}
 async function getArticles() {
   let date = new Date();
 
